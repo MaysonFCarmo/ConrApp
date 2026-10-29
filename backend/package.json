@@ -1,0 +1,5 @@
+{
+ "name":"conrapp-backend","version":"0.1.0","type":"module","private":true,
+ "scripts":{"dev":"node --watch src/server.js","start":"node src/server.js","test":"node --test"},
+ "dependencies":{"express":"^4.21.2","cors":"^2.8.5","dotenv":"^16.4.7"}
+}
