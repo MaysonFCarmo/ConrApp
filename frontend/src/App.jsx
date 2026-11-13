@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { api } from "./api.js";
 import MiniCalendar from "./components/MiniCalendar.jsx";
+import EventRegistrationButton from "./components/EventRegistrationButton.jsx";
 
 const storeKey = "conrapp_demo_token";
 function getToken() {
@@ -543,45 +544,83 @@ function Communities({ token }) {
                 title="Comunidades Acadêmicas"
                 description="Encontre pessoas e assuntos relacionados aos seus estudos."
             />
-            <div className="cards">
+
+            <div className="academic-community-grid">
                 {(data || []).map((c) => (
-                    <article className="community-card" key={c.id}>
-                        <div className="community-icon">
-                            {c.category === "Eventos" ? "📆" : "💻"}
+                    <article className="academic-community-card" key={c.id}>
+                        <div
+                            className={`academic-community-cover ${c.category === "Eventos"
+                                ? "community-theme-events"
+                                : c.name === "Banco de Dados"
+                                    ? "community-theme-database"
+                                    : "community-theme-web"
+                                }`}
+                        >
+                            <span className="academic-community-mark">
+                                CONRAPP / COMUNIDADES
+                            </span>
+
+                            <div className="academic-community-cover-bottom">
+                                <span className="academic-community-symbol">
+                                    {c.category === "Eventos" ? "📅" : "💻"}
+                                </span>
+
+                                <span className="academic-community-category">
+                                    {c.category}
+                                </span>
+                            </div>
                         </div>
-                        <span className="tag">{c.category}</span>
-                        <h3>{c.name}</h3>
-                        <p>{c.description}</p>
-                        <small>{c.members} participantes</small>
-                        <div className="card-actions">
-                            {c.joined ? (
-                                <button
-                                    className="primary"
-                                    onClick={() => nav(`/comunidades/${c.id}`)}
-                                >
-                                    Abrir comunidade <ArrowRight size={16} />
-                                </button>
-                            ) : (
-                                <>
-                                    <button
-                                        className="outline"
-                                        onClick={() => nav(`/comunidades/${c.id}`)}
-                                    >
-                                        Detalhes
-                                    </button>
+
+                        <div className="academic-community-body">
+                            <h3>{c.name}</h3>
+
+                            <p className="academic-community-description">
+                                {c.description}
+                            </p>
+
+                            <div className="academic-community-members">
+                                <Users size={16} />
+                                <span>{c.members} participantes</span>
+                            </div>
+
+                            <div className="academic-community-actions">
+                                {c.joined ? (
                                     <button
                                         className="primary"
-                                        disabled={loading === c.id}
-                                        onClick={() => join(c.id)}
+                                        onClick={() =>
+                                            nav(`/comunidades/${c.id}`)
+                                        }
                                     >
-                                        Participar <Plus size={16} />
+                                        Abrir comunidade
+                                        <ArrowRight size={16} />
                                     </button>
-                                </>
-                            )}
+                                ) : (
+                                    <>
+                                        <button
+                                            className="outline"
+                                            onClick={() =>
+                                                nav(`/comunidades/${c.id}`)
+                                            }
+                                        >
+                                            Detalhes
+                                        </button>
+
+                                        <button
+                                            className="primary"
+                                            disabled={loading === c.id}
+                                            onClick={() => join(c.id)}
+                                        >
+                                            Participar
+                                            <Plus size={16} />
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </article>
                 ))}
             </div>
+
             {error && (
                 <p role="alert" className="error">
                     {error}
@@ -736,55 +775,453 @@ function Discussions({ token }) {
                 title="Discussões"
                 description="Acesse as discussões das comunidades em que você participa."
             />
-            <div className="cards">
+
+            <div className="academic-discussion-grid">
                 {(data || [])
                     .filter((c) => c.joined)
                     .map((c) => (
-                        <article className="community-card" key={c.id}>
-                            <div className="community-icon">💬</div>
-                            <h3>{c.name}</h3>
-                            <p>{c.description}</p>
-                            <button
-                                className="primary"
-                                onClick={() => nav(`/comunidades/${c.id}`)}
+                        <article
+                            className="academic-discussion-card"
+                            key={c.id}
+                        >
+                            <div
+                                className={`academic-discussion-cover ${c.category === "Eventos"
+                                        ? "community-theme-events"
+                                        : c.name === "Banco de Dados"
+                                            ? "community-theme-database"
+                                            : "community-theme-web"
+                                    }`}
                             >
-                                Ver discussões <ArrowRight size={16} />
-                            </button>
+                                <span className="academic-discussion-mark">
+                                    CONRAPP / DISCUSSÕES
+                                </span>
+
+                                <div className="academic-discussion-cover-bottom">
+                                    <span className="academic-discussion-symbol">
+                                        💬
+                                    </span>
+
+                                    <span className="academic-discussion-category">
+                                        {c.category}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="academic-discussion-body">
+                                <h3>{c.name}</h3>
+
+                                <p className="academic-discussion-description">
+                                    {c.description}
+                                </p>
+
+                                <div className="academic-discussion-info">
+                                    <Users size={16} />
+                                    <span>
+                                        Discussões da comunidade
+                                    </span>
+                                </div>
+
+                                <button
+                                    className="primary academic-discussion-button"
+                                    onClick={() =>
+                                        nav(`/comunidades/${c.id}`)
+                                    }
+                                >
+                                    Ver discussões
+                                    <ArrowRight size={16} />
+                                </button>
+                            </div>
                         </article>
                     ))}
             </div>
+
         </>
     );
 }
-function Events({ token }) {
-    const { data } = useData("/events", token);
+
+function Events({ token, user }) {
+    const { data, error } = useData("/events", token);
+    const { data: communities } = useData("/communities", token);
+
+    const [showForm, setShowForm] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [message, setMessage] = useState("");
+    const [formError, setFormError] = useState("");
+    const [createdEvents, setCreatedEvents] = useState([]);
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState("all");
+
+    const [form, setForm] = useState({
+        title: "",
+        description: "",
+        date: "",
+        time: "",
+        category: "workshop",
+        communityId: "",
+    });
+
+    const isProfessor = user?.role === "professor";
+
+    const joinedCommunities = (communities || []).filter(
+        (community) => community.joined
+    );
+
+    const events = [
+        ...(data || []).filter(
+            (event) => !createdEvents.some((created) => created.id === event.id)
+        ),
+        ...createdEvents,
+    ];
+
+    const filteredEvents = events
+        .filter((event) => {
+            const matchesSearch = [
+                event.title,
+                event.description,
+            ].some((value) =>
+                String(value || "")
+                    .toLocaleLowerCase("pt-BR")
+                    .includes(searchTerm.trim().toLocaleLowerCase("pt-BR"))
+            );
+
+            const matchesCategory =
+                categoryFilter === "all" ||
+                event.category === categoryFilter;
+
+            return matchesSearch && matchesCategory;
+        })
+        .sort((a, b) =>
+            `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`)
+        );
+
+    function updateField(event) {
+        const { name, value } = event.target;
+
+        setForm((previous) => ({
+            ...previous,
+            [name]: value,
+        }));
+    }
+
+    async function createEvent(event) {
+        event.preventDefault();
+
+        setSaving(true);
+        setFormError("");
+        setMessage("");
+
+        try {
+            const result = await api("/events", {
+                token,
+                method: "POST",
+                body: {
+                    ...form,
+                    communityId: Number(form.communityId),
+                },
+            });
+
+            setCreatedEvents((previous) => [
+                ...previous,
+                result.event,
+            ]);
+
+            setMessage("Evento cadastrado com sucesso!");
+            setShowForm(false);
+
+            setForm({
+                title: "",
+                description: "",
+                date: "",
+                time: "",
+                category: "workshop",
+                communityId: "",
+            });
+        } catch (error) {
+            setFormError(
+                error.message || "Não foi possível cadastrar o evento."
+            );
+        } finally {
+            setSaving(false);
+        }
+    }
+
     return (
         <>
             <Heading
-                label="AGENDA"
+                label="AGENDA ACADÊMICA"
                 title="Eventos Acadêmicos"
-                description="Eventos disponíveis nas comunidades das quais você participa."
+                description="Descubra atividades, workshops e encontros das suas comunidades."
             />
-            <div className="cards">
-                {(data || []).map((e) => (
-                    <article className="community-card" key={e.id}>
-                        <div className="community-icon">📅</div>
-                        <span className="tag">Evento</span>
-                        <h3>{e.title}</h3>
-                        <p>{e.description}</p>
-                        <b>
-                            {new Date(e.date + "T12:00:00").toLocaleDateString("pt-BR")} •{" "}
-                            {e.time}
-                        </b>
-                        <small>
-                            Inscrição e criação de eventos: Sprint 3 (HU-002/HU-010)
-                        </small>
-                    </article>
-                ))}
+
+            <div className="events-toolbar">
+                <div>
+                    <h2>Explore os próximos eventos</h2>
+                    <p className="muted">
+                        Aprenda, participe e conecte-se à comunidade acadêmica.
+                    </p>
+                </div>
+
+                {isProfessor && (
+                    <button
+                        type="button"
+                        className="event-primary-button"
+                        onClick={() => {
+                            setShowForm((previous) => !previous);
+                            setFormError("");
+                            setMessage("");
+                        }}
+                    >
+                        <Plus size={18} />
+                        {showForm ? "Fechar formulário" : "Criar evento"}
+                    </button>
+                )}
+            </div>
+
+            {message && (
+                <div className="event-feedback success" role="status">
+                    {message}
+                </div>
+            )}
+
+            {isProfessor && showForm && (
+                <form className="event-form" onSubmit={createEvent}>
+                    <h3>Novo evento acadêmico</h3>
+
+                    <div className="event-form-grid">
+                        <label>
+                            Título
+                            <input
+                                name="title"
+                                value={form.title}
+                                onChange={updateField}
+                                maxLength={120}
+                                placeholder="Ex.: Workshop de React"
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            Comunidade organizadora
+                            <select
+                                name="communityId"
+                                value={form.communityId}
+                                onChange={updateField}
+                                required
+                            >
+                                <option value="">Selecione</option>
+
+                                {joinedCommunities.map((community) => (
+                                    <option key={community.id} value={community.id}>
+                                        {community.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+
+                        <label>
+                            Data
+                            <input
+                                type="date"
+                                name="date"
+                                value={form.date}
+                                onChange={updateField}
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            Horário
+                            <input
+                                type="time"
+                                name="time"
+                                value={form.time}
+                                onChange={updateField}
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            Categoria
+                            <select
+                                name="category"
+                                value={form.category}
+                                onChange={updateField}
+                            >
+                                <option value="workshop">Workshop</option>
+                                <option value="lecture">Palestra</option>
+                                <option value="community">Encontro</option>
+                                <option value="exam">Prova</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <label className="event-description-field">
+                        Descrição
+                        <textarea
+                            name="description"
+                            value={form.description}
+                            onChange={updateField}
+                            maxLength={2000}
+                            rows={4}
+                            placeholder="Descreva o objetivo e o conteúdo do evento."
+                            required
+                        />
+                    </label>
+
+                    {formError && (
+                        <p className="event-feedback error" role="alert">
+                            {formError}
+                        </p>
+                    )}
+
+                    <button
+                        type="submit"
+                        className="event-primary-button"
+                        disabled={saving || joinedCommunities.length === 0}
+                    >
+                        {saving ? "Salvando..." : "Cadastrar evento"}
+                    </button>
+                </form>
+            )}
+
+            {error && <p role="alert">{error.message}</p>}
+
+
+            <div className="events-filters">
+                <label className="events-search">
+                    <span>Buscar eventos</span>
+
+                    <input
+                        type="search"
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                        placeholder="Buscar por título ou descrição..."
+                    />
+                </label>
+
+                <label className="events-category-filter">
+                    <span>Categoria</span>
+
+                    <select
+                        value={categoryFilter}
+                        onChange={(event) => setCategoryFilter(event.target.value)}
+                    >
+                        <option value="all">Todas as categorias</option>
+                        <option value="workshop">Workshops</option>
+                        <option value="lecture">Palestras</option>
+                        <option value="community">Encontros</option>
+                        <option value="exam">Provas</option>
+                    </select>
+                </label>
+            </div>
+
+            <p className="events-result-count">
+                {filteredEvents.length} evento(s) encontrado(s)
+            </p>
+
+            <div className="events-discovery-grid">
+                {filteredEvents.map((event) => {
+                    const categoryInfo = {
+                        workshop: {
+                            label: "Workshop",
+                            theme: "workshop",
+                        },
+                        lecture: {
+                            label: "Palestra",
+                            theme: "lecture",
+                        },
+                        community: {
+                            label: "Encontro",
+                            theme: "community",
+                        },
+                        exam: {
+                            label: "Prova",
+                            theme: "exam",
+                        },
+                    }[event.category] || {
+                        label: "Evento",
+                        theme: "default",
+                    };
+
+                    const date = new Date(`${event.date}T12:00:00`);
+
+                    const formattedDate = date.toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "short",
+                    });
+
+                    const isPast = `${event.date}T${event.time}` <
+                        `${new Date().getFullYear()}-${String(
+                            new Date().getMonth() + 1
+                        ).padStart(2, "0")}-${String(
+                            new Date().getDate()
+                        ).padStart(2, "0")}T${new Date()
+                            .toTimeString()
+                            .slice(0, 5)}`;
+
+                    const communityName = (communities || []).find(
+                        (community) => community.id === event.communityId
+                    )?.name || "Comunidade acadêmica";
+
+                    return (
+                        <article
+                            key={event.id}
+                            className="academic-event-card"
+                        >
+                            <div
+                                className={`academic-event-cover theme-${categoryInfo.theme}`}
+                            >
+                                <span className="academic-cover-mark">
+                                    CONRAPP / EVENTOS
+                                </span>
+
+                                <CalendarDays size={38} strokeWidth={1.5} />
+
+                                <span className="academic-cover-category">
+                                    {categoryInfo.label}
+                                </span>
+                            </div>
+
+                            <div className="academic-event-body">
+                                <div className="academic-event-meta">
+                                    <span>{formattedDate}</span>
+                                    <span>•</span>
+                                    <span>{event.time}</span>
+
+                                    {isPast && (
+                                        <span className="academic-event-past">
+                                            Encerrado
+                                        </span>
+                                    )}
+                                </div>
+
+                                <h3>{event.title}</h3>
+
+                                <p className="academic-event-description">
+                                    {event.description}
+                                </p>
+
+                                <div className="academic-event-community">
+                                    <Users size={15} />
+                                    <span>{communityName}</span>
+                                </div>
+
+                                <EventRegistrationButton
+                                    eventId={event.id}
+                                    token={token}
+                                    eventDate={event.date}
+                                    eventTime={event.time}
+                                />
+                            </div>
+                        </article>
+                    );
+                })}
             </div>
         </>
     );
 }
+
 function Profile({ user }) {
     return (
         <>
@@ -881,7 +1318,10 @@ export default function App() {
                         element={<CommunityDetail token={token} />}
                     />
                     <Route path="discussoes" element={<Discussions token={token} />} />
-                    <Route path="eventos" element={<Events token={token} />} />
+                    <Route
+                        path="eventos"
+                        element={<Events token={token} user={user} />}
+                    />
                     <Route path="perfil" element={<Profile user={user} />} />
                 </Route>
                 <Route

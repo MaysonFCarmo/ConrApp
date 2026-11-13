@@ -11,12 +11,23 @@ function toDateKey(date) {
 
     return `${year}-${month}-${day}`;
 }
-
 export default function MiniCalendar({
     selectedDate,
     onDateSelect,
     events = [],
 }) {
+    const [visibleMonth, setVisibleMonth] = useState(() => {
+        const initial = selectedDate
+            ? new Date(`${selectedDate}T12:00:00`)
+            : new Date();
+
+        return new Date(
+            initial.getFullYear(),
+            initial.getMonth(),
+            1
+        );
+    });
+
     useEffect(() => {
         if (!selectedDate) return;
 
