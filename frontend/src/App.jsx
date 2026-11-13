@@ -7,7 +7,9 @@ import {
     NavLink,
     useNavigate,
     useParams,
+    useSearchParams,
     Outlet,
+    useLocation,
 } from "react-router-dom";
 import {
     CalendarDays,
@@ -24,13 +26,43 @@ import {
     EyeOff,
 } from "lucide-react";
 import { api } from "./api.js";
+import MiniCalendar from "./components/MiniCalendar.jsx";
 
 const storeKey = "conrapp_demo_token";
 function getToken() {
     return sessionStorage.getItem(storeKey);
 }
+
 function AppShell({ user, onLogout }) {
     const [open, setOpen] = useState(false);
+
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const [sidebarDate, setSidebarDate] = useState(() => {
+        const today = new Date();
+
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const day = String(today.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+    });
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const date = params.get("date");
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date || "")) {
+            setSidebarDate(date);
+        }
+    }, [location.search]);
+
+    function handleSidebarDateSelect(date) {
+        setSidebarDate(date);
+        navigate(`/?date=${date}`);
+        setOpen(false);
+    }
     const links = [
         ["/", "Calendário", CalendarDays],
         ["/comunidades", "Comunidades", Users],
@@ -60,6 +92,16 @@ function AppShell({ user, onLogout }) {
                         </NavLink>
                     ))}
                 </nav>
+
+                <div className="sidebar-calendar">
+                    <p className="side-label">CALENDÁRIO</p>
+
+                    <MiniCalendar
+                        selectedDate={sidebarDate}
+                        onDateSelect={handleSidebarDateSelect}
+                    />
+                </div>
+
                 <div className="side-bottom">
                     <div className="avatar small">{user.name.slice(0, 1)}</div>
                     <div>
@@ -256,27 +298,70 @@ function Heading({ label, title, description, children }) {
 }
 const EVENT_COLORS = {
     workshop: "#DCFCE7",   // Verde
-    exam: "#FEE2E2",       // Vermelho
-    lecture: "#FEF3C7",    // Amarelo
     community: "#EDE9FE",  // Roxo
+    lecture: "#FEF3C7",    // Amarelo
+    exam: "#FEE2E2",       // Vermelho
 };
 
 function getEventColor(category) {
-    return EVENT_COLORS[category] || "#F1F5F9";
+    return EVENT_COLORS[category] || "#F8FAFC";
 }
+
 function Calendar({ token }) {
-    const [offset, setOffset] = useState(0),
-        [selected, setSelected] = useState(null);
-    const { data, error } = useData("/calendar", token);
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const dateParam = searchParams.get("date");
+
+    const isValidDate = (value) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) {
+            return false;
+        }
+
+        const parsed = new Date(`${value}T12:00:00`);
+
+        if (Number.isNaN(parsed.getTime())) {
+            return false;
+        }
+
+        return (
+            parsed.getFullYear() === Number(value.slice(0, 4)) &&
+            parsed.getMonth() + 1 === Number(value.slice(5, 7)) &&
+            parsed.getDate() === Number(value.slice(8, 10))
+        );
+    };
+
+    const selected = isValidDate(dateParam) ? dateParam : null;
+
     const today = new Date();
-    const current = new Date(today.getFullYear(), today.getMonth() + offset, 1);
-    const year = current.getFullYear(),
-        month = current.getMonth();
-    const firstDay = (current.getDay() + 6) % 7,
-        days = new Date(year, month + 1, 0).getDate();
+
+    const selectedDate = selected
+        ? new Date(`${selected}T12:00:00`)
+        : today;
+
+    const [offset, setOffset] = useState(0);
+
+    const current = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth() + offset,
+        1
+    );
+
+    const year = current.getFullYear();
+    const month = current.getMonth();
+
+    const firstDay = (current.getDay() + 6) % 7;
+    const days = new Date(year, month + 1, 0).getDate();
+
+    const { data, error } = useData("/calendar", token);
     const events = data || [];
+
+    function selectDate(date) {
+        setSearchParams({ date });
+        setOffset(0);
+    }
     const dateKey = (day) =>
         `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
     const selectedEvents = events.filter((e) => e.date === selected);
     return (
         <>
@@ -302,7 +387,7 @@ function Calendar({ token }) {
                                 className="ghost"
                                 onClick={() => {
                                     setOffset(0);
-                                    setSelected(null);
+                                    setSearchParams({});
                                 }}
                             >
                                 Hoje
@@ -335,7 +420,7 @@ function Calendar({ token }) {
 
                                 <button
                                     key={day}
-                                    onClick={() => setSelected(key)}
+                                    onClick={() => selectDate(key)}
                                     className={"day " + (selected === key ? "selected" : "")}
                                     style={{ backgroundColor: dayColor }}
                                 >
