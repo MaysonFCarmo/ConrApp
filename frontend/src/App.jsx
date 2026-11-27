@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import PostReportButton from "./components/PostReportButton.jsx";
+import NotificationBell from "./components/NotificationBell.jsx";
+import PasswordRecovery from "./components/PasswordRecovery.jsx";
 import {
     BrowserRouter,
     Routes,
@@ -34,7 +37,7 @@ function getToken() {
     return sessionStorage.getItem(storeKey);
 }
 
-function AppShell({ user, onLogout }) {
+function AppShell({ user, onLogout, token }) {
     const [open, setOpen] = useState(false);
 
     const navigate = useNavigate();
@@ -125,8 +128,12 @@ function AppShell({ user, onLogout }) {
                     </button>
                     <div className="top-title">Comunidade Acadêmica</div>
                     <div className="top-user">
+                        <NotificationBell token={token} />
+
                         <span className="status-dot" />
-                        {user.name}{" "}
+
+                        <span>{user.name}</span>
+
                         <span className="role">
                             {user.role === "professor" ? "Professor" : "Aluno"}
                         </span>
@@ -145,6 +152,7 @@ function Login({ onLogin }) {
         [show, setShow] = useState(false),
         [error, setError] = useState(""),
         [busy, setBusy] = useState(false);
+    const [recoverOpen, setRecoverOpen] = useState(false);
     async function submit(e) {
         e.preventDefault();
         setError("");
@@ -190,50 +198,80 @@ function Login({ onLogin }) {
                     <div className="mobile-brand">
                         <GraduationCap /> CONRAPP
                     </div>
-                    <h2>Bem-vindo de volta!</h2>
-                    <p>Entre com seus dados para acessar a comunidade.</p>
-                    <form onSubmit={submit}>
-                        <label>
-                            E-mail
-                            <input
-                                type="email"
-                                value={email}
-                                autoComplete="username"
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                placeholder="seuemail@exemplo.com"
-                            />
-                        </label>
-                        <label>
-                            Senha
-                            <div className="password">
+                    <h2>
+                        {recoverOpen ? "Recuperar senha" : "Bem-vindo de volta!"}
+                    </h2>
+
+                    <p>
+                        {recoverOpen
+                            ? "Recupere o acesso à sua conta CONRAPP."
+                            : "Entre com seus dados para acessar a comunidade."}
+                    </p>
+                    {!recoverOpen && (
+                        <form onSubmit={submit}>
+                            <label>
+                                E-mail
                                 <input
-                                    type={show ? "text" : "password"}
-                                    value={password}
-                                    autoComplete="current-password"
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    type="email"
+                                    value={email}
+                                    autoComplete="username"
+                                    onChange={(e) => setEmail(e.target.value)}
                                     required
+                                    placeholder="seuemail@exemplo.com"
                                 />
-                                <button
-                                    type="button"
-                                    aria-label={show ? "Ocultar senha" : "Mostrar senha"}
-                                    onClick={() => setShow(!show)}
-                                >
-                                    {show ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
-                            </div>
-                        </label>
-                        {error && (
-                            <div role="alert" className="error">
-                                {error}
-                            </div>
-                        )}
-                        <button className="primary full" disabled={busy}>
-                            {busy ? "Entrando..." : "Entrar na plataforma"}{" "}
-                            <ArrowRight size={18} />
-                        </button>
-                    </form>
+                            </label>
+                            <label>
+                                Senha
+                                <div className="password">
+                                    <input
+                                        type={show ? "text" : "password"}
+                                        value={password}
+                                        autoComplete="current-password"
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        aria-label={show ? "Ocultar senha" : "Mostrar senha"}
+                                        onClick={() => setShow(!show)}
+                                    >
+                                        {show ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                            </label>
+                            {error && (
+                                <div role="alert" className="error">
+                                    {error}
+                                </div>
+                            )}
+                            <button className="primary full" disabled={busy}>
+                                {busy ? "Entrando..." : "Entrar na plataforma"}{" "}
+                                <ArrowRight size={18} />
+                            </button>
+                        </form>
+                    )}
                     <div className="demo-help">
+                        {recoverOpen ? (
+                            <PasswordRecovery
+                                initialEmail={email}
+                                onBack={() => {
+                                    setRecoverOpen(false);
+                                    setPassword("");
+                                    setError("");
+                                }}
+                            />
+                        ) : (
+                            <button
+                                type="button"
+                                className="recovery-link"
+                                onClick={() => {
+                                    setRecoverOpen(true);
+                                    setError("");
+                                }}
+                            >
+                                Esqueci minha senha
+                            </button>
+                        )}
                         <strong>Contas para demonstração</strong>
                         <p>Aluno: aluno@conrapp.demo / Aluno123!</p>
                         <p>Professor: professor@conrapp.demo / Professor123!</p>
@@ -713,6 +751,12 @@ function CommunityDetail({ token }) {
                                 </div>
                             </div>
                             <p>{post.content}</p>
+
+                            <PostReportButton
+                                postId={post.id}
+                                token={token}
+                            />
+
                             <div className="comments">
                                 <strong>Comentários ({post.comments.length})</strong>
                                 {post.comments.map((com) => (
@@ -786,10 +830,10 @@ function Discussions({ token }) {
                         >
                             <div
                                 className={`academic-discussion-cover ${c.category === "Eventos"
-                                        ? "community-theme-events"
-                                        : c.name === "Banco de Dados"
-                                            ? "community-theme-database"
-                                            : "community-theme-web"
+                                    ? "community-theme-events"
+                                    : c.name === "Banco de Dados"
+                                        ? "community-theme-database"
+                                        : "community-theme-web"
                                     }`}
                             >
                                 <span className="academic-discussion-mark">
@@ -1222,33 +1266,198 @@ function Events({ token, user }) {
     );
 }
 
-function Profile({ user }) {
+function Profile({ user, token, onUserUpdate }) {
+    const [editing, setEditing] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+
+    const [form, setForm] = useState({
+        name: user.name,
+        course: user.course || "",
+        institution: user.institution || "",
+    });
+
+    useEffect(() => {
+        setForm({
+            name: user.name,
+            course: user.course || "",
+            institution: user.institution || "",
+        });
+    }, [user.name, user.course, user.institution]);
+
+    function handleChange(event) {
+        const { name, value } = event.target;
+
+        setForm((previous) => ({
+            ...previous,
+            [name]: value,
+        }));
+    }
+
+    function handleCancel() {
+        setForm({
+            name: user.name,
+            course: user.course || "",
+            institution: user.institution || "",
+        });
+
+        setEditing(false);
+        setError("");
+        setSuccess("");
+    }
+
+    async function handleSave(event) {
+        event.preventDefault();
+
+        setSaving(true);
+        setError("");
+        setSuccess("");
+
+        try {
+            const result = await api("/auth/me", {
+                token,
+                method: "PATCH",
+                body: {
+                    name: form.name.trim(),
+                    course: form.course.trim(),
+                    institution: form.institution.trim(),
+                },
+            });
+
+            onUserUpdate(result.user);
+            setEditing(false);
+            setSuccess("Perfil atualizado com sucesso!");
+        } catch (err) {
+            setError(err.message || "Erro ao atualizar perfil.");
+        } finally {
+            setSaving(false);
+        }
+    }
+
     return (
         <>
             <Heading
                 label="CONTA"
                 title="Meu Perfil"
-                description="Dados de demonstração para os perfis de aluno e professor."
+                description="Visualize e atualize suas informações acadêmicas."
             />
-            <div className="panel profile">
-                <div className="avatar large">{user.name[0]}</div>
-                <h2>{user.name}</h2>
-                <span className="tag">
-                    {user.role === "professor" ? "Professor" : "Aluno"}
-                </span>
-                <dl>
-                    <dt>E-mail</dt>
-                    <dd>{user.email}</dd>
-                    <dt>Instituição</dt>
-                    <dd>{user.institution}</dd>
-                    <dt>Curso / atuação</dt>
-                    <dd>{user.course}</dd>
-                </dl>
-                <small>Edição de perfil: HU-007 (a desenvolver).</small>
+
+            <div className="panel profile profile-campus">
+                <div className="profile-campus-header">
+                    <div className="avatar large">
+                        {user.name.charAt(0).toUpperCase()}
+                    </div>
+
+                    <div>
+                        <h2>{user.name}</h2>
+                        <span className="tag">
+                            {user.role === "professor"
+                                ? "Professor"
+                                : "Aluno"}
+                        </span>
+                    </div>
+                </div>
+
+                {success && (
+                    <p className="profile-success" role="status">
+                        {success}
+                    </p>
+                )}
+
+                {error && (
+                    <p className="error" role="alert">
+                        {error}
+                    </p>
+                )}
+
+                {editing ? (
+                    <form onSubmit={handleSave} className="profile-edit-form">
+                        <label>
+                            Nome completo
+                            <input
+                                name="name"
+                                value={form.name}
+                                onChange={handleChange}
+                                maxLength={100}
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            Curso / atuação
+                            <input
+                                name="course"
+                                value={form.course}
+                                onChange={handleChange}
+                                maxLength={120}
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            Instituição
+                            <input
+                                name="institution"
+                                value={form.institution}
+                                onChange={handleChange}
+                                maxLength={120}
+                                required
+                            />
+                        </label>
+
+                        <div className="profile-form-actions">
+                            <button
+                                type="button"
+                                className="outline"
+                                onClick={handleCancel}
+                                disabled={saving}
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                type="submit"
+                                className="primary"
+                                disabled={saving}
+                            >
+                                {saving
+                                    ? "Salvando..."
+                                    : "Salvar alterações"}
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    <>
+                        <dl>
+                            <dt>E-mail</dt>
+                            <dd>{user.email}</dd>
+
+                            <dt>Instituição</dt>
+                            <dd>{user.institution}</dd>
+
+                            <dt>Curso / atuação</dt>
+                            <dd>{user.course}</dd>
+                        </dl>
+
+                        <button
+                            type="button"
+                            className="primary profile-edit-button"
+                            onClick={() => {
+                                setError("");
+                                setSuccess("");
+                                setEditing(true);
+                            }}
+                        >
+                            Editar perfil
+                        </button>
+                    </>
+                )}
             </div>
         </>
     );
 }
+
 export default function App() {
     const [token, setToken] = useState(getToken()),
         [user, setUser] = useState(null),
@@ -1305,7 +1514,11 @@ export default function App() {
                 <Route
                     element={
                         user ? (
-                            <AppShell user={user} onLogout={onLogout} />
+                            <AppShell
+                                user={user}
+                                onLogout={onLogout}
+                                token={token}
+                            />
                         ) : (
                             <Navigate to="/login" replace />
                         )
@@ -1322,7 +1535,11 @@ export default function App() {
                         path="eventos"
                         element={<Events token={token} user={user} />}
                     />
-                    <Route path="perfil" element={<Profile user={user} />} />
+                    <Route path="perfil" element={<Profile
+                        user={user}
+                        token={token}
+                        onUserUpdate={setUser}
+                    />} />
                 </Route>
                 <Route
                     path="*"
