@@ -5,7 +5,7 @@ Comunidades, discussões, calendário e eventos em um único ambiente.
 
 
 
-</div>Versão documentada: estado do desenvolvimento até a Sprint 3 — novembro de 2026. O CONRAPP é um MVP acadêmico em evolução, com dados de demonstração mantidos em memória. Não está preparado para implantação em produção.
+</div>Versão documentada: estado do desenvolvimento até a Sprint 4 — novembro de 2026. O CONRAPP é um MVP acadêmico em evolução, com dados de demonstração mantidos em memória. Não está preparado para implantação em produção.
 
 Sumário
 - Sobre o projeto
@@ -326,3 +326,80 @@ O CONRAPP reúne práticas de desenvolvimento frontend e backend, integração d
 
 Documentação do MVP até a Sprint 3.
 </div>
+
+---
+
+## Sprint 4 — Finalização do MVP
+
+**Data:** 27 de novembro de 2026.
+
+A Sprint 4 acrescentou recursos de gerenciamento de perfil, moderação,
+notificações e recuperação de acesso, preservando as funcionalidades
+desenvolvidas nas três Sprints anteriores.
+
+### HU-007 — Edição de perfil
+
+- Alunos e professores podem editar nome, curso e instituição.
+- Os campos são validados no Backend.
+- E-mail e papel do usuário não podem ser alterados pelo formulário.
+- As informações atualizadas são refletidas na interface.
+- Endpoint: `PATCH /api/auth/me`.
+
+### HU-011 — Denúncia de publicações
+
+- Usuários podem denunciar publicações de outras pessoas nas
+  comunidades das quais participam.
+- Motivos disponíveis: spam, conteúdo ofensivo, inadequado e outros.
+- O Backend bloqueia denúncias da própria publicação, duplicadas,
+  sem autenticação ou sem acesso à comunidade.
+- Endpoint: `POST /api/posts/:id/reports`.
+- As denúncias são registradas em memória com status pendente.
+
+### HU-003 — Central de notificações
+
+- Sino de notificações no cabeçalho.
+- Contador de notificações não lidas.
+- Notificações automáticas para novos eventos nas comunidades.
+- Avisos de confirmação e cancelamento de inscrições.
+- Leitura individual e opção de marcar todas como lidas.
+- Atualização periódica e consulta ao abrir o painel.
+
+Endpoints:
+- `GET /api/notifications`
+- `PATCH /api/notifications/:id/read`
+- `PATCH /api/notifications/read-all`
+
+### HU-012 — Recuperação de senha
+
+- Solicitação de recuperação por e-mail cadastrado.
+- Geração de código numérico temporário de seis dígitos.
+- Código com validade de 15 minutos e limite de cinco tentativas.
+- Código de uso único.
+- Redefinição de senha e encerramento das sessões anteriores.
+- Interface para solicitar o código e cadastrar uma nova senha.
+
+Endpoints:
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
+
+**Observação:** não existe envio real de e-mail neste MVP.
+Para demonstração acadêmica, o código é exibido no terminal do Backend.
+
+### Testes e validações
+
+- HU-007: 8 testes de interface aprovados.
+- HU-011: 8 testes de interface e 5 testes adicionais de segurança aprovados.
+- HU-003: 8 testes de interface aprovados e integração com eventos validada.
+- HU-012: 8 testes de interface aprovados e validações da redefinição
+  de senha realizadas.
+- Verificação de sintaxe do Backend executada com sucesso.
+- Build de produção do Frontend executado com sucesso.
+
+### Limitações do MVP
+
+- Dados, sessões, denúncias, notificações e inscrições são mantidos
+  em memória e podem ser perdidos ao reiniciar o servidor.
+- As senhas dos usuários demonstrativos são mantidas sem hash.
+- A recuperação de senha não possui integração com serviço de e-mail.
+- O projeto não está preparado para autenticação ou implantação
+  em ambiente de produção.
